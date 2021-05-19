@@ -1,58 +1,24 @@
-import React, {useEffect, useState} from 'react'
-import {
-  StyleSheet,
-  View,
-  TextInput,
-  NativeModules,
-  Platform,
-  Text,
-} from 'react-native'
-import {io} from 'socket.io-client'
-
-const {StatusBarManager} = NativeModules
-let socket
+import React from 'react'
+import MapView from 'react-native-maps'
+import {StyleSheet} from 'react-native'
 
 const App = () => {
-  const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState([])
-
-  useEffect(() => {
-    socket = io('http://192.168.0.106:3000')
-  }, [])
-
-  useEffect(() => {
-    socket.on('chat message', message => {
-      setMessages([...messages, message])
-    })
-  }, [messages])
-
-  const handleSubmitMessage = () => {
-    socket.emit('chat message', message)
-    setMessage('')
-  }
-
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={{
-          height: 40,
-          borderWidth: 2,
-        }}
-        autoCorrect={false}
-        onChangeText={setMessage}
-        value={message}
-        onSubmitEditing={handleSubmitMessage}
-      />
-      {messages && messages.map(message => <Text>{message}</Text>)}
-    </View>
+    <MapView
+      style={styles.mapStyle}
+      initialRegion={{
+        latitude: 37.78825,
+        longitude: -122.4324,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      }}
+    />
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mapStyle: {
     flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? StatusBarManager.HEIGHT : 0,
   },
 })
 
