@@ -31,10 +31,6 @@ const Map = () => {
     )
   }, [])
 
-  useEffect(() => {
-    debouncedChangeDestination(destination)
-  }, [destination])
-
   const changeDestination = destination => {
     const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${googleAPIKey}&input=${destination}&location=${latitude}, ${longitude}&radius=2000`
     const options = {
@@ -55,7 +51,10 @@ const Map = () => {
     }
   }
 
-  const debouncedChangeDestination = _.debounce(changeDestination, 2000)
+  const debouncedChangeDestination = useCallback(
+    _.debounce(changeDestination, 1000),
+    [latitude, longitude],
+  )
 
   const handleChangeDestination = destination => {
     setDestination(destination)
@@ -78,7 +77,7 @@ const Map = () => {
         style={styles.destinationInput}
         placeholder="Enter destination..."
         value={destination}
-        onChangeText={setDestination}
+        onChangeText={handleChangeDestination}
       />
       {predictions &&
         predictions.map(prediction => (
