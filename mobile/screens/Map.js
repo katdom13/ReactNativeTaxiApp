@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useState} from 'react'
 import MapView from 'react-native-maps'
 import {StyleSheet, View, TextInput, Text} from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
+import _ from 'lodash'
 
 import {googleAPIKey} from '../config/googleAPIKey'
 import colors from '../config/colors'
@@ -30,25 +31,30 @@ const Map = () => {
     )
   }, [])
 
-  const handleChangeDestination = async destination => {
+  const handleChangeDestination = destination => {
     setDestination(destination)
-    const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${googleAPIKey}&input=${destination}&location=${latitude}, ${longitude}&radius=2000`
-    const options = {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json, text/plain, */*',
-        'Content-Type': 'application/json',
-      },
-    }
-    try {
-      fetch(apiUrl, options)
-        .then(response => response.json())
-        .then(data => {
-          setPredictions(data.predictions)
-        })
-    } catch (err) {
-      console.error(err)
-    }
+
+    const debounced = _.debounce(destination => {
+      const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${googleAPIKey}&input=${destination}&location=${latitude}, ${longitude}&radius=2000`
+      const options = {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json, text/plain, */*',
+          'Content-Type': 'application/json',
+        },
+      }
+      try {
+        fetch(apiUrl, options)
+          .then(response => response.json())
+          .then(data => {
+            setPredictions(data.predictions)
+          })
+      } catch (err) {
+        console.error(err)
+      }
+    }, 1000)
+
+    debounced(destination)
   }
 
   return (
