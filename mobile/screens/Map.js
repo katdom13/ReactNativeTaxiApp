@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react'
+import React, {useCallback, useEffect, useRef, useState} from 'react'
 import MapView, {Marker, Polyline} from 'react-native-maps'
 import {
   StyleSheet,
@@ -22,6 +22,7 @@ const Map = () => {
   const [destination, setDestination] = useState('')
   const [predictions, setPredictions] = useState([])
   const [pointCoords, setPointCoords] = useState([])
+  const mapRef = useRef(null)
 
   useEffect(() => {
     Geolocation.getCurrentPosition(
@@ -95,6 +96,9 @@ const Map = () => {
 
           // Dismiss android keyboard
           Keyboard.dismiss()
+
+          // Zoom out
+          mapRef.current.fitToCoordinates(pointCoords)
         })
     } catch (err) {
       console.error(err)
@@ -117,6 +121,7 @@ const Map = () => {
           longitudeDelta: 0.0421,
         }}
         showsUserLocation={true}
+        ref={mapRef}
       >
         <Polyline coordinates={pointCoords} strokeWidth={4} strokeColor="red" />
         {/* Put a marker for destination if there is a route */}
