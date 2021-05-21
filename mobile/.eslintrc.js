@@ -10,6 +10,7 @@ module.exports = {
         'no-inline-styles': false,
       },
     ],
+    'react-hooks/exhaustive-deps': 0,
     'no-shadow': 'off',
   },
 }
