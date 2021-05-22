@@ -6,22 +6,25 @@ import {
   TextInput,
   Text,
   TouchableHighlight,
+  TouchableOpacity,
   Keyboard,
 } from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
 import _ from 'lodash'
 import PolyLine from '@mapbox/polyline'
+import socketIO from 'socket.io-client'
 
 import {googleAPIKey} from '../config/googleAPIKey'
 import colors from '../config/colors'
 
-const Map = () => {
+const Passenger = () => {
   const [latitude, setLatitude] = useState(0)
   const [longitude, setLongitude] = useState(0)
   const [error, setError] = useState(null)
   const [destination, setDestination] = useState('')
   const [predictions, setPredictions] = useState([])
   const [pointCoords, setPointCoords] = useState([])
+  const [routeResponse, setRouteResponse] = useState(null)
   const mapRef = useRef(null)
 
   useEffect(() => {
@@ -79,6 +82,9 @@ const Map = () => {
       fetch(apiUrl, options)
         .then(response => response.json())
         .then(data => {
+          // Set route
+          setRouteResponse(data)
+
           // Decode polylines to an actual coordinates list
           const points = PolyLine.decode(
             data.routes[0].overview_polyline.points,
@@ -108,6 +114,16 @@ const Map = () => {
   const handleChangeDestination = destination => {
     setDestination(destination)
     debouncedChangeDestination(destination)
+  }
+
+  const handleRequestDriver = () => {
+    var socket = socketIO.connect('http://192.168.0.106:3000')
+
+    socket.on('connect', () => {
+      console.log('client connected')
+      // Request a taxi!
+      socket.emit('taxiRequest', routeResponse)
+    })
   }
 
   return (
@@ -152,11 +168,35 @@ const Map = () => {
             </View>
           </TouchableHighlight>
         ))}
+
+      {pointCoords.length > 1 && (
+        <TouchableOpacity
+          style={styles.bottomButton}
+          onPress={handleRequestDriver}
+        >
+          <View>
+            <Text style={styles.bottomButtonText}>FIND DRIVER</Text>
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  bottomButton: {
+    backgroundColor: colors.black,
+    marginTop: 'auto',
+    margin: 20,
+    padding: 15,
+    paddingLeft: 30,
+    paddingRight: 30,
+    alignItems: 'center',
+  },
+  bottomButtonText: {
+    color: colors.white,
+    fontSize: 20,
+  },
   container: {
     ...StyleSheet.absoluteFillObject,
   },
@@ -182,4 +222,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default Map
+export default Passenger
