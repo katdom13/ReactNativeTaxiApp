@@ -7,6 +7,8 @@ import {
   Text,
   TouchableHighlight,
   Keyboard,
+  ActivityIndicator,
+  Image,
 } from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
 import _ from 'lodash'
@@ -25,6 +27,8 @@ const Passenger = () => {
   const [predictions, setPredictions] = useState([])
   const [pointCoords, setPointCoords] = useState([])
   const [routeResponse, setRouteResponse] = useState(null)
+  const [isFindingDriver, setIsFindingDriver] = useState(false)
+  const [driverLocation, setDriverLocation] = useState(null)
   const mapRef = useRef(null)
 
   useEffect(() => {
@@ -124,12 +128,20 @@ const Passenger = () => {
   }
 
   const handleRequestDriver = () => {
+    setIsFindingDriver(true)
     var socket = socketIO.connect('http://192.168.0.106:3000')
 
     socket.on('connect', () => {
       console.log('client connected')
       // Request a taxi!
       socket.emit('taxiRequest', routeResponse)
+    })
+
+    socket.on('driverLocation', location => {
+      setIsFindingDriver(false)
+      setDriverLocation(location)
+      // Zoom out of map to include driver location
+      mapRef.current.fitToCoordinates([...pointCoords, driverLocation])
     })
   }
 
@@ -151,6 +163,16 @@ const Passenger = () => {
         {/* Destination point is the last coordinate */}
         {pointCoords.length > 1 && (
           <Marker coordinate={pointCoords[pointCoords.length - 1]} />
+        )}
+
+        {/* Display driver's location if there is a driver */}
+        {driverLocation && (
+          <Marker coordinate={driverLocation}>
+            <Image
+              style={{width: 40, height: 40}}
+              source={require('../images/carIcon.png')}
+            />
+          </Marker>
         )}
       </MapView>
       <TextInput
@@ -177,7 +199,15 @@ const Passenger = () => {
         ))}
 
       {pointCoords.length > 1 && (
-        <BottomButton func={handleRequestDriver} text="REQUEST 🚗" />
+        <BottomButton func={handleRequestDriver} text="REQUEST 🚗">
+          {isFindingDriver && (
+            <ActivityIndicator
+              animating={isFindingDriver}
+              color={colors.primary}
+              size="large"
+            />
+          )}
+        </BottomButton>
       )}
     </View>
   )

@@ -1,13 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react'
 import MapView, {Marker, Polyline} from 'react-native-maps'
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-} from 'react-native'
+import {StyleSheet, View, ActivityIndicator, Image} from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
 import PolyLine from '@mapbox/polyline'
 import socketIO from 'socket.io-client'
@@ -24,7 +17,8 @@ const Driver = () => {
   const mapRef = useRef(null)
   const [isFindingPassengers, setIsFindingPassengers] = useState(false)
   const [isPassengerFound, setIsPassengerFound] = useState(false)
-  const [buttonText, setButtonText] = useState('FIND A PASSENGER')
+  const [buttonText, setButtonText] = useState('FIND A PASSENGER 👥')
+  const [socket, setSocket] = useState(null)
 
   useEffect(() => {
     Geolocation.getCurrentPosition(
@@ -84,6 +78,7 @@ const Driver = () => {
     setIsFindingPassengers(true)
     setButtonText('FINDING A PASSENGER...')
     var socket = socketIO.connect('http://192.168.0.106:3000')
+    setSocket(socket)
 
     socket.on('connect', () => {
       // console.log('client connected')
@@ -98,6 +93,11 @@ const Driver = () => {
       setIsPassengerFound(true)
       setButtonText('FOUND A PASSENGER! ACCEPT?')
     })
+  }
+
+  const handleAcceptPassengerRequest = () => {
+    console.log('[DRIVER]: ACCEPT PASSENGER')
+    socket.emit('driverLocation', {latitude: latitude, longitude: longitude})
   }
 
   return (
@@ -125,7 +125,13 @@ const Driver = () => {
           </Marker>
         )}
       </MapView>
-      <BottomButton func={handleFindPassengers} text={buttonText}>
+      <BottomButton
+        // This function depends on status
+        func={
+          isPassengerFound ? handleAcceptPassengerRequest : handleFindPassengers
+        }
+        text={buttonText}
+      >
         {isFindingPassengers && (
           <ActivityIndicator
             animating={isFindingPassengers}

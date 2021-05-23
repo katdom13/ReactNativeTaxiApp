@@ -6,6 +6,7 @@ const io = new Server(server)
 const port = 3000
 
 let driverSocket = null
+let passengerSocket = null
 
 io.on('connection', socket => {
   console.log('a user connected :D')
@@ -15,6 +16,7 @@ io.on('connection', socket => {
   })
   socket.on('taxiRequest', routeResponse => {
     console.log("PASSENGER: I am looking for a driver")
+    passengerSocket = socket
     if (driverSocket != null) {
       driverSocket.emit('taxiRequest', routeResponse)
     }
@@ -22,6 +24,10 @@ io.on('connection', socket => {
   socket.on('findPassenger', () => {
     console.log('DRIVER: I am looking for a passenger')
     driverSocket = socket
+  })
+  // Send driver location to passenger socket
+  socket.on('driverLocation', location => {
+    passengerSocket.emit('driverLocation', location)
   })
 })
 
