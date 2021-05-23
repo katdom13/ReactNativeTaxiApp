@@ -1,6 +1,15 @@
 import React, {useEffect, useRef, useState} from 'react'
 import MapView, {Marker, Polyline} from 'react-native-maps'
-import {StyleSheet, View, ActivityIndicator, Image} from 'react-native'
+import {
+  StyleSheet,
+  View,
+  ActivityIndicator,
+  Image,
+  // For linking to third party apps
+  Linking,
+  // For detecting the OS
+  Platform,
+} from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
 import PolyLine from '@mapbox/polyline'
 import socketIO from 'socket.io-client'
@@ -98,6 +107,18 @@ const Driver = () => {
   const handleAcceptPassengerRequest = () => {
     console.log('[DRIVER]: ACCEPT PASSENGER')
     socket.emit('driverLocation', {latitude: latitude, longitude: longitude})
+
+    const passengerLocation = pointCoords[pointCoords.length - 1]
+
+    if (Platform.OS === 'ios') {
+      Linking.openURL(
+        `http://maps.apple.com/?daddr=${passengerLocation.latitude},${passengerLocation.longitude}`,
+      )
+    } else {
+      Linking.openURL(
+        `https://www.google.com/maps/dir/?api=1&destination=${passengerLocation.latitude},${passengerLocation.longitude}`,
+      )
+    }
   }
 
   return (

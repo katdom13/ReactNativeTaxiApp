@@ -138,10 +138,10 @@ const Passenger = () => {
     })
 
     socket.on('driverLocation', location => {
+      // Zoom out of map to include driver location
+      mapRef.current.fitToCoordinates([...pointCoords, location])
       setIsFindingDriver(false)
       setDriverLocation(location)
-      // Zoom out of map to include driver location
-      mapRef.current.fitToCoordinates([...pointCoords, driverLocation])
     })
   }
 
