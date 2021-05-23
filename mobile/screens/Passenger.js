@@ -6,7 +6,6 @@ import {
   TextInput,
   Text,
   TouchableHighlight,
-  TouchableOpacity,
   Keyboard,
 } from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
@@ -16,6 +15,7 @@ import socketIO from 'socket.io-client'
 
 import {googleAPIKey} from '../config/googleAPIKey'
 import colors from '../config/colors'
+import BottomButton from '../components/BottomButton'
 
 const Passenger = () => {
   const [latitude, setLatitude] = useState(0)
@@ -44,6 +44,13 @@ const Passenger = () => {
     )
   }, [])
 
+  // Output any changes to error
+  useEffect(() => {
+    if (error != null) {
+      console.error(error)
+    }
+  }, [error])
+
   const changeDestination = destination => {
     const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${googleAPIKey}&input=${destination}&location=${latitude}, ${longitude}&radius=2000`
     const options = {
@@ -69,7 +76,12 @@ const Passenger = () => {
     [latitude, longitude],
   )
 
-  const getRouteDirections = (destinationId, destinationName) => {
+  const handleChangeDestination = destination => {
+    setDestination(destination)
+    debouncedChangeDestination(destination)
+  }
+
+  const handleGetRouteDirections = (destinationId, destinationName) => {
     const apiUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${latitude},${longitude}&destination=place_id:${destinationId}&key=${googleAPIKey}`
     const options = {
       method: 'GET',
@@ -109,11 +121,6 @@ const Passenger = () => {
     } catch (err) {
       console.error(err)
     }
-  }
-
-  const handleChangeDestination = destination => {
-    setDestination(destination)
-    debouncedChangeDestination(destination)
   }
 
   const handleRequestDriver = () => {
@@ -157,7 +164,7 @@ const Passenger = () => {
           <TouchableHighlight
             key={prediction.description}
             onPress={() =>
-              getRouteDirections(
+              handleGetRouteDirections(
                 prediction.place_id,
                 prediction.structured_formatting.main_text,
               )
@@ -170,33 +177,13 @@ const Passenger = () => {
         ))}
 
       {pointCoords.length > 1 && (
-        <TouchableOpacity
-          style={styles.bottomButton}
-          onPress={handleRequestDriver}
-        >
-          <View>
-            <Text style={styles.bottomButtonText}>FIND DRIVER</Text>
-          </View>
-        </TouchableOpacity>
+        <BottomButton func={handleRequestDriver} text="REQUEST 🚗" />
       )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  bottomButton: {
-    backgroundColor: colors.black,
-    marginTop: 'auto',
-    margin: 20,
-    padding: 15,
-    paddingLeft: 30,
-    paddingRight: 30,
-    alignItems: 'center',
-  },
-  bottomButtonText: {
-    color: colors.white,
-    fontSize: 20,
-  },
   container: {
     ...StyleSheet.absoluteFillObject,
   },

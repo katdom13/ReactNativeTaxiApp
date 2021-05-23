@@ -5,8 +5,8 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Keyboard,
   ActivityIndicator,
+  Image,
 } from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
 import PolyLine from '@mapbox/polyline'
@@ -14,6 +14,7 @@ import socketIO from 'socket.io-client'
 
 import {googleAPIKey} from '../config/googleAPIKey'
 import colors from '../config/colors'
+import BottomButton from '../components/BottomButton'
 
 const Driver = () => {
   const [latitude, setLatitude] = useState(0)
@@ -22,6 +23,7 @@ const Driver = () => {
   const [pointCoords, setPointCoords] = useState([])
   const mapRef = useRef(null)
   const [isFindingPassengers, setIsFindingPassengers] = useState(false)
+  const [isPassengerFound, setIsPassengerFound] = useState(false)
   const [buttonText, setButtonText] = useState('FIND A PASSENGER')
 
   useEffect(() => {
@@ -40,6 +42,13 @@ const Driver = () => {
       },
     )
   }, [])
+
+  // Output any changes to error
+  useEffect(() => {
+    if (error != null) {
+      console.error(error)
+    }
+  }, [error])
 
   const getRouteDirections = destinationId => {
     const apiUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${latitude},${longitude}&destination=place_id:${destinationId}&key=${googleAPIKey}`
@@ -73,7 +82,7 @@ const Driver = () => {
 
   const handleFindPassengers = () => {
     setIsFindingPassengers(true)
-    setButtonText('FINDING A PASSENGER')
+    setButtonText('FINDING A PASSENGER...')
     var socket = socketIO.connect('http://192.168.0.106:3000')
 
     socket.on('connect', () => {
@@ -86,7 +95,8 @@ const Driver = () => {
       console.log(routeResponse)
       getRouteDirections(routeResponse.geocoded_waypoints[0].place_id)
       setIsFindingPassengers(false)
-      setButtonText('FOUND A PASSENGER')
+      setIsPassengerFound(true)
+      setButtonText('FOUND A PASSENGER! ACCEPT?')
     })
   }
 
@@ -107,45 +117,28 @@ const Driver = () => {
         {/* Put a marker for destination if there is a route */}
         {/* Destination point is the last coordinate */}
         {pointCoords.length > 1 && (
-          <Marker coordinate={pointCoords[pointCoords.length - 1]} />
+          <Marker coordinate={pointCoords[pointCoords.length - 1]}>
+            <Image
+              style={{width: 40, height: 40}}
+              source={require('../images/person-marker.png')}
+            />
+          </Marker>
         )}
       </MapView>
-      <TouchableOpacity
-        style={styles.bottomButton}
-        onPress={handleFindPassengers}
-      >
-        <View>
-          <Text style={styles.bottomButtonText}>
-            {/* {isFindingPassengers ? 'FINDING A PASSENGER' : 'FIND PASSENGER'} */}
-            {buttonText}
-          </Text>
-          {isFindingPassengers && (
-            <ActivityIndicator
-              animating={isFindingPassengers}
-              color={colors.primary}
-              size="large"
-            />
-          )}
-        </View>
-      </TouchableOpacity>
+      <BottomButton func={handleFindPassengers} text={buttonText}>
+        {isFindingPassengers && (
+          <ActivityIndicator
+            animating={isFindingPassengers}
+            color={colors.primary}
+            size="large"
+          />
+        )}
+      </BottomButton>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  bottomButton: {
-    backgroundColor: colors.black,
-    marginTop: 'auto',
-    margin: 20,
-    padding: 15,
-    paddingLeft: 30,
-    paddingRight: 30,
-    alignItems: 'center',
-  },
-  bottomButtonText: {
-    color: colors.white,
-    fontSize: 20,
-  },
   container: {
     ...StyleSheet.absoluteFillObject,
   },
