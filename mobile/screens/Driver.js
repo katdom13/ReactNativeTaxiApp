@@ -19,8 +19,8 @@ import colors from '../config/colors'
 import BottomButton from '../components/BottomButton'
 
 const Driver = () => {
-  const [latitude, setLatitude] = useState(0)
-  const [longitude, setLongitude] = useState(0)
+  const [latitude, setLatitude] = useState(null)
+  const [longitude, setLongitude] = useState(null)
   const [error, setError] = useState(null)
   const [pointCoords, setPointCoords] = useState([])
   const mapRef = useRef(null)
@@ -30,7 +30,7 @@ const Driver = () => {
   const [socket, setSocket] = useState(null)
 
   useEffect(() => {
-    Geolocation.getCurrentPosition(
+    let watchId = Geolocation.watchPosition(
       position => {
         setLatitude(position.coords.latitude)
         console.log('!!!', position.coords.latitude)
@@ -44,6 +44,10 @@ const Driver = () => {
         maximumAge: 2000,
       },
     )
+
+    return () => {
+      Geolocation.watchPosition(watchId)
+    }
   }, [])
 
   // Output any changes to error
@@ -121,13 +125,13 @@ const Driver = () => {
     }
   }
 
-  return (
+  return latitude === null ? null : (
     <View style={styles.container}>
       <MapView
         style={styles.map}
         initialRegion={{
-          latitude: latitude,
-          longitude: longitude,
+          latitude: latitude === null ? 0 : latitude,
+          longitude: longitude === null ? 0 : longitude,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}

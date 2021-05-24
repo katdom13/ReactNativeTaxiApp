@@ -20,8 +20,8 @@ import colors from '../config/colors'
 import BottomButton from '../components/BottomButton'
 
 const Passenger = () => {
-  const [latitude, setLatitude] = useState(0)
-  const [longitude, setLongitude] = useState(0)
+  const [latitude, setLatitude] = useState(null)
+  const [longitude, setLongitude] = useState(null)
   const [error, setError] = useState(null)
   const [destination, setDestination] = useState('')
   const [predictions, setPredictions] = useState([])
@@ -32,7 +32,7 @@ const Passenger = () => {
   const mapRef = useRef(null)
 
   useEffect(() => {
-    Geolocation.getCurrentPosition(
+    let watchId = Geolocation.watchPosition(
       position => {
         setLatitude(position.coords.latitude)
         console.log('!!!', position.coords.latitude)
@@ -46,6 +46,10 @@ const Passenger = () => {
         maximumAge: 2000,
       },
     )
+
+    return () => {
+      Geolocation.clearWatch(watchId)
+    }
   }, [])
 
   // Output any changes to error
@@ -145,7 +149,7 @@ const Passenger = () => {
     })
   }
 
-  return (
+  return latitude === null ? null : (
     <View style={styles.container}>
       <MapView
         style={styles.map}
