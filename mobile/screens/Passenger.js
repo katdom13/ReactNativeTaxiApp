@@ -154,8 +154,8 @@ const Passenger = () => {
       <MapView
         style={styles.map}
         initialRegion={{
-          latitude: latitude,
-          longitude: longitude,
+          latitude: latitude === null ? 0 : latitude,
+          longitude: longitude === null ? 0 : longitude,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}

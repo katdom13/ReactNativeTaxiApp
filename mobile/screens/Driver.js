@@ -9,10 +9,12 @@ import {
   Linking,
   // For detecting the OS
   Platform,
+  Alert,
 } from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
 import PolyLine from '@mapbox/polyline'
 import socketIO from 'socket.io-client'
+import BackgroundGeolocation from '@mauron85/react-native-background-geolocation'
 
 import {googleAPIKey} from '../config/googleAPIKey'
 import colors from '../config/colors'
@@ -45,8 +47,51 @@ const Driver = () => {
       },
     )
 
+    BackgroundGeolocation.configure({
+      desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY,
+      stationaryRadius: 50,
+      distanceFilter: 50,
+      debug: false,
+      startOnBoot: false,
+      stopOnTerminate: true,
+      locationProvider: BackgroundGeolocation.ACTIVITY_PROVIDER,
+      interval: 10000,
+      fastestInterval: 5000,
+      activitiesInterval: 10000,
+      stopOnStillActivity: false,
+    })
+
+    BackgroundGeolocation.on('authorization', status => {
+      console.log(
+        '[INFO] BackgroundGeolocation authorization status: ' + status,
+      )
+      if (status !== BackgroundGeolocation.AUTHORIZED) {
+        // we need to set delay or otherwise alert may not be shown
+        setTimeout(
+          () =>
+            Alert.alert(
+              'App requires location tracking permission',
+              'Would you like to open app settings?',
+              [
+                {
+                  text: 'Yes',
+                  onPress: () => BackgroundGeolocation.showAppSettings(),
+                },
+                {
+                  text: 'No',
+                  onPress: () => console.log('No Pressed'),
+                  style: 'cancel',
+                },
+              ],
+            ),
+          1000,
+        )
+      }
+    })
+
     return () => {
       Geolocation.watchPosition(watchId)
+      BackgroundGeolocation.removeAllListeners()
     }
   }, [])
 
@@ -109,10 +154,51 @@ const Driver = () => {
   }
 
   const handleAcceptPassengerRequest = () => {
-    console.log('[DRIVER]: ACCEPT PASSENGER')
-    socket.emit('driverLocation', {latitude: latitude, longitude: longitude})
-
     const passengerLocation = pointCoords[pointCoords.length - 1]
+
+    BackgroundGeolocation.on('location', location => {
+      //Send driver location to passenger
+      console.log('[DRIVER]: ACCEPT PASSENGER')
+      console.log('[DEBUG] BackgroundGeolocation location', location)
+      const {latitude, longitude} = location
+      // execute long running task
+      // eg. ajax post location
+      // IMPORTANT: task has to be ended by endTask
+      setLatitude(latitude)
+      setLongitude(longitude)
+      socket.emit('driverLocation', {
+        latitude: latitude,
+        longitude: longitude,
+      })
+    })
+
+    // BackgroundGeolocation.on('location', location => {
+    //   // handle your locations here
+    //   // to perform long running operation on iOS
+    //   // you need to create background task
+    //   BackgroundGeolocation.startTask(taskKey => {
+    //     console.log('[DRIVER]: ACCEPT PASSENGER')
+    //     console.log('[DEBUG] BackgroundGeolocation location', location)
+    //     const {latitude, longitude} = location
+    //     // execute long running task
+    //     // eg. ajax post location
+    //     // IMPORTANT: task has to be ended by endTask
+    //     setLatitude(latitude)
+    //     setLongitude(longitude)
+    //     socket.emit('driverLocation', {
+    //       latitude: latitude,
+    //       longitude: longitude,
+    //     })
+    //     BackgroundGeolocation.endTask(taskKey)
+    //   })
+    // })
+
+    BackgroundGeolocation.checkStatus(status => {
+      // you don't need to check status before start (this is just the example)
+      if (!status.isRunning) {
+        BackgroundGeolocation.start() //triggers start on start event
+      }
+    })
 
     if (Platform.OS === 'ios') {
       Linking.openURL(
