@@ -27,6 +27,7 @@ io.on('connection', socket => {
   })
   // Send driver location to passenger socket
   socket.on('driverLocation', location => {
+    console.log('DRIVER LOCATION =>', driverSocket)
     passengerSocket.emit('driverLocation', location)
   })
 })

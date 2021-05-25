@@ -9,18 +9,20 @@ import {
   Linking,
   // For detecting the OS
   Platform,
+  Alert,
 } from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
 import PolyLine from '@mapbox/polyline'
 import socketIO from 'socket.io-client'
+import BackgroundGeolocation from '@mauron85/react-native-background-geolocation'
 
 import {googleAPIKey} from '../config/googleAPIKey'
 import colors from '../config/colors'
 import BottomButton from '../components/BottomButton'
 
 const Driver = () => {
-  const [latitude, setLatitude] = useState(0)
-  const [longitude, setLongitude] = useState(0)
+  const [latitude, setLatitude] = useState(null)
+  const [longitude, setLongitude] = useState(null)
   const [error, setError] = useState(null)
   const [pointCoords, setPointCoords] = useState([])
   const mapRef = useRef(null)
@@ -30,10 +32,9 @@ const Driver = () => {
   const [socket, setSocket] = useState(null)
 
   useEffect(() => {
-    Geolocation.getCurrentPosition(
+    let watchId = Geolocation.watchPosition(
       position => {
         setLatitude(position.coords.latitude)
-        console.log('!!!', position.coords.latitude)
         setLongitude(position.coords.longitude)
         setError(null)
       },
@@ -44,6 +45,53 @@ const Driver = () => {
         maximumAge: 2000,
       },
     )
+
+    BackgroundGeolocation.configure({
+      desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY,
+      stationaryRadius: 50,
+      distanceFilter: 50,
+      debug: false,
+      startOnBoot: false,
+      stopOnTerminate: true,
+      locationProvider: BackgroundGeolocation.ACTIVITY_PROVIDER,
+      interval: 10000,
+      fastestInterval: 5000,
+      activitiesInterval: 10000,
+      stopOnStillActivity: false,
+    })
+
+    BackgroundGeolocation.on('authorization', status => {
+      console.log(
+        '[INFO] BackgroundGeolocation authorization status: ' + status,
+      )
+      if (status !== BackgroundGeolocation.AUTHORIZED) {
+        // we need to set delay or otherwise alert may not be shown
+        setTimeout(
+          () =>
+            Alert.alert(
+              'App requires location tracking permission',
+              'Would you like to open app settings?',
+              [
+                {
+                  text: 'Yes',
+                  onPress: () => BackgroundGeolocation.showAppSettings(),
+                },
+                {
+                  text: 'No',
+                  onPress: () => console.log('No Pressed'),
+                  style: 'cancel',
+                },
+              ],
+            ),
+          1000,
+        )
+      }
+    })
+
+    return () => {
+      Geolocation.watchPosition(watchId)
+      BackgroundGeolocation.removeAllListeners()
+    }
   }, [])
 
   // Output any changes to error
@@ -54,6 +102,7 @@ const Driver = () => {
   }, [error])
 
   const getRouteDirections = destinationId => {
+    console.log('!!')
     const apiUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${latitude},${longitude}&destination=place_id:${destinationId}&key=${googleAPIKey}`
     const options = {
       method: 'GET',
@@ -90,7 +139,6 @@ const Driver = () => {
     setSocket(socket)
 
     socket.on('connect', () => {
-      // console.log('client connected')
       // Request a taxi!
       socket.emit('findPassenger')
     })
@@ -105,10 +153,32 @@ const Driver = () => {
   }
 
   const handleAcceptPassengerRequest = () => {
-    console.log('[DRIVER]: ACCEPT PASSENGER')
-    socket.emit('driverLocation', {latitude: latitude, longitude: longitude})
-
     const passengerLocation = pointCoords[pointCoords.length - 1]
+
+    BackgroundGeolocation.on('location', location => {
+      // handle your locations here
+      // to perform long running operation on iOS
+      // you need to create background task
+      BackgroundGeolocation.startTask(taskKey => {
+        console.log('[DRIVER]: ACCEPT PASSENGER')
+        console.log('[DEBUG] BackgroundGeolocation location', location)
+        const {latitude, longitude} = location
+        // execute long running task
+        // eg. ajax post location
+        // IMPORTANT: task has to be ended by endTask
+        setLatitude(latitude)
+        setLongitude(longitude)
+        socket.emit('driverLocation', {
+          latitude: latitude,
+          longitude: longitude,
+        })
+        // Readjust Polylines (?)
+        // getRouteDirections(routeResponse.geocoded_waypoints[0].place_id)
+        BackgroundGeolocation.endTask(taskKey)
+      })
+    })
+
+    BackgroundGeolocation.start() //triggers start on start event
 
     if (Platform.OS === 'ios') {
       Linking.openURL(
@@ -121,13 +191,13 @@ const Driver = () => {
     }
   }
 
-  return (
+  return latitude === null ? null : (
     <View style={styles.container}>
       <MapView
         style={styles.map}
         initialRegion={{
-          latitude: latitude,
-          longitude: longitude,
+          latitude: latitude === null ? 0 : latitude,
+          longitude: longitude === null ? 0 : longitude,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
