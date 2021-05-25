@@ -35,7 +35,6 @@ const Driver = () => {
     let watchId = Geolocation.watchPosition(
       position => {
         setLatitude(position.coords.latitude)
-        console.log('!!!', position.coords.latitude)
         setLongitude(position.coords.longitude)
         setError(null)
       },
@@ -103,6 +102,7 @@ const Driver = () => {
   }, [error])
 
   const getRouteDirections = destinationId => {
+    console.log('!!')
     const apiUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${latitude},${longitude}&destination=place_id:${destinationId}&key=${googleAPIKey}`
     const options = {
       method: 'GET',
@@ -139,7 +139,6 @@ const Driver = () => {
     setSocket(socket)
 
     socket.on('connect', () => {
-      // console.log('client connected')
       // Request a taxi!
       socket.emit('findPassenger')
     })
@@ -157,48 +156,29 @@ const Driver = () => {
     const passengerLocation = pointCoords[pointCoords.length - 1]
 
     BackgroundGeolocation.on('location', location => {
-      //Send driver location to passenger
-      console.log('[DRIVER]: ACCEPT PASSENGER')
-      console.log('[DEBUG] BackgroundGeolocation location', location)
-      const {latitude, longitude} = location
-      // execute long running task
-      // eg. ajax post location
-      // IMPORTANT: task has to be ended by endTask
-      setLatitude(latitude)
-      setLongitude(longitude)
-      socket.emit('driverLocation', {
-        latitude: latitude,
-        longitude: longitude,
+      // handle your locations here
+      // to perform long running operation on iOS
+      // you need to create background task
+      BackgroundGeolocation.startTask(taskKey => {
+        console.log('[DRIVER]: ACCEPT PASSENGER')
+        console.log('[DEBUG] BackgroundGeolocation location', location)
+        const {latitude, longitude} = location
+        // execute long running task
+        // eg. ajax post location
+        // IMPORTANT: task has to be ended by endTask
+        setLatitude(latitude)
+        setLongitude(longitude)
+        socket.emit('driverLocation', {
+          latitude: latitude,
+          longitude: longitude,
+        })
+        // Readjust Polylines (?)
+        // getRouteDirections(routeResponse.geocoded_waypoints[0].place_id)
+        BackgroundGeolocation.endTask(taskKey)
       })
     })
 
-    // BackgroundGeolocation.on('location', location => {
-    //   // handle your locations here
-    //   // to perform long running operation on iOS
-    //   // you need to create background task
-    //   BackgroundGeolocation.startTask(taskKey => {
-    //     console.log('[DRIVER]: ACCEPT PASSENGER')
-    //     console.log('[DEBUG] BackgroundGeolocation location', location)
-    //     const {latitude, longitude} = location
-    //     // execute long running task
-    //     // eg. ajax post location
-    //     // IMPORTANT: task has to be ended by endTask
-    //     setLatitude(latitude)
-    //     setLongitude(longitude)
-    //     socket.emit('driverLocation', {
-    //       latitude: latitude,
-    //       longitude: longitude,
-    //     })
-    //     BackgroundGeolocation.endTask(taskKey)
-    //   })
-    // })
-
-    BackgroundGeolocation.checkStatus(status => {
-      // you don't need to check status before start (this is just the example)
-      if (!status.isRunning) {
-        BackgroundGeolocation.start() //triggers start on start event
-      }
-    })
+    BackgroundGeolocation.start() //triggers start on start event
 
     if (Platform.OS === 'ios') {
       Linking.openURL(
