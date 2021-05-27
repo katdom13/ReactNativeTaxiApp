@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react'
+import React, {useCallback, useState} from 'react'
 import MapView, {Marker, Polyline} from 'react-native-maps'
 import {
   StyleSheet,
@@ -10,57 +10,22 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native'
-import Geolocation from '@react-native-community/geolocation'
 import _ from 'lodash'
-import PolyLine from '@mapbox/polyline'
 import socketIO from 'socket.io-client'
 
 import {googleAPIKey} from '../config/googleAPIKey'
 import colors from '../config/colors'
 import BottomButton from '../components/BottomButton'
 
-const Passenger = () => {
-  const [latitude, setLatitude] = useState(null)
-  const [longitude, setLongitude] = useState(null)
-  const [error, setError] = useState(null)
+const Passenger = props => {
   const [destination, setDestination] = useState('')
   const [predictions, setPredictions] = useState([])
-  const [pointCoords, setPointCoords] = useState([])
   const [routeResponse, setRouteResponse] = useState(null)
   const [isFindingDriver, setIsFindingDriver] = useState(false)
   const [driverLocation, setDriverLocation] = useState(null)
-  const mapRef = useRef(null)
-
-  useEffect(() => {
-    let watchId = Geolocation.watchPosition(
-      position => {
-        setLatitude(position.coords.latitude)
-        console.log('!!!', position.coords.latitude)
-        setLongitude(position.coords.longitude)
-        setError(null)
-      },
-      error => setError(error.message),
-      {
-        enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: 2000,
-      },
-    )
-
-    return () => {
-      Geolocation.clearWatch(watchId)
-    }
-  }, [])
-
-  // Output any changes to error
-  useEffect(() => {
-    if (error != null) {
-      console.error(error)
-    }
-  }, [error])
 
   const changeDestination = destination => {
-    const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${googleAPIKey}&input=${destination}&location=${latitude}, ${longitude}&radius=2000`
+    const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${googleAPIKey}&input=${destination}&location=${props.latitude}, ${props.longitude}&radius=2000`
     const options = {
       method: 'GET',
       headers: {
@@ -81,7 +46,7 @@ const Passenger = () => {
 
   const debouncedChangeDestination = useCallback(
     _.debounce(changeDestination, 1000),
-    [latitude, longitude],
+    [props.latitude, props.longitude],
   )
 
   const handleChangeDestination = destination => {
@@ -89,43 +54,21 @@ const Passenger = () => {
     debouncedChangeDestination(destination)
   }
 
-  const handleGetRouteDirections = (destinationId, destinationName) => {
-    const apiUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${latitude},${longitude}&destination=place_id:${destinationId}&key=${googleAPIKey}`
-    const options = {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json, text/plain, */*',
-        'Content-Type': 'application/json',
-      },
-    }
+  const handleGetRouteDirections = async (destinationId, destinationName) => {
     try {
-      fetch(apiUrl, options)
-        .then(response => response.json())
-        .then(data => {
-          // Set route
-          setRouteResponse(data)
+      props.getRouteDirections(destinationId, destinationName).then(data => {
+        // Set route
+        setRouteResponse(data)
 
-          // Decode polylines to an actual coordinates list
-          const points = PolyLine.decode(
-            data.routes[0].overview_polyline.points,
-          )
-          const pointCoords = points.map(point => {
-            return {latitude: point[0], longitude: point[1]}
-          })
-          setPointCoords(pointCoords)
+        // Set name in destination input to shortened name
+        setDestination(destinationName)
 
-          // Set name in destination input to shortened name
-          setDestination(destinationName)
+        // Reset destination predictions
+        setPredictions([])
 
-          // Reset destination predictions
-          setPredictions([])
-
-          // Dismiss android keyboard
-          Keyboard.dismiss()
-
-          // Zoom out
-          mapRef.current.fitToCoordinates(pointCoords)
-        })
+        // Dismiss android keyboard
+        Keyboard.dismiss()
+      })
     } catch (err) {
       console.error(err)
     }
@@ -143,77 +86,86 @@ const Passenger = () => {
 
     socket.on('driverLocation', location => {
       // Zoom out of map to include driver location
-      mapRef.current.fitToCoordinates([...pointCoords, location])
+      props.mapRef.current.fitToCoordinates([...props.pointCoords, location])
       setIsFindingDriver(false)
       setDriverLocation(location)
     })
   }
 
-  return latitude === null ? null : (
-    <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: latitude === null ? 0 : latitude,
-          longitude: longitude === null ? 0 : longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
-        showsUserLocation={true}
-        ref={mapRef}
-      >
-        <Polyline coordinates={pointCoords} strokeWidth={4} strokeColor="red" />
-        {/* Put a marker for destination if there is a route */}
-        {/* Destination point is the last coordinate */}
-        {pointCoords.length > 1 && (
-          <Marker coordinate={pointCoords[pointCoords.length - 1]} />
-        )}
-
-        {/* Display driver's location if there is a driver */}
-        {driverLocation && (
-          <Marker coordinate={driverLocation}>
-            <Image
-              style={{width: 40, height: 40}}
-              source={require('../images/carIcon.png')}
-            />
-          </Marker>
-        )}
-      </MapView>
-      <TextInput
-        style={styles.destinationInput}
-        placeholder="Enter destination..."
-        value={destination}
-        onChangeText={handleChangeDestination}
-      />
-      {predictions &&
-        predictions.map(prediction => (
-          <TouchableHighlight
-            key={prediction.description}
-            onPress={() =>
-              handleGetRouteDirections(
-                prediction.place_id,
-                prediction.structured_formatting.main_text,
-              )
-            }
-          >
-            <View>
-              <Text style={styles.suggestion}>{prediction.description}</Text>
-            </View>
-          </TouchableHighlight>
-        ))}
-
-      {pointCoords.length > 1 && (
-        <BottomButton func={handleRequestDriver} text="REQUEST 🚗">
-          {isFindingDriver && (
-            <ActivityIndicator
-              animating={isFindingDriver}
-              color={colors.primary}
-              size="large"
+  return (
+    props.latitude &&
+    props.longitude && (
+      <View style={styles.container}>
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: props.latitude,
+            longitude: props.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+          showsUserLocation={true}
+          ref={props.mapRef}
+        >
+          <Polyline
+            coordinates={props.pointCoords}
+            strokeWidth={4}
+            strokeColor="red"
+          />
+          {/* Put a marker for destination if there is a route */}
+          {/* Destination point is the last coordinate */}
+          {props.pointCoords.length > 1 && (
+            <Marker
+              coordinate={props.pointCoords[props.pointCoords.length - 1]}
             />
           )}
-        </BottomButton>
-      )}
-    </View>
+
+          {/* Display driver's location if there is a driver */}
+          {driverLocation && (
+            <Marker coordinate={driverLocation}>
+              <Image
+                style={{width: 40, height: 40}}
+                source={require('../images/carIcon.png')}
+              />
+            </Marker>
+          )}
+        </MapView>
+        <TextInput
+          style={styles.destinationInput}
+          placeholder="Enter destination..."
+          value={destination}
+          onChangeText={handleChangeDestination}
+        />
+        {predictions &&
+          predictions.map(prediction => (
+            <TouchableHighlight
+              key={prediction.description}
+              onPress={() =>
+                handleGetRouteDirections(
+                  prediction.place_id,
+                  prediction.structured_formatting.main_text,
+                )
+              }
+            >
+              <View>
+                <Text style={styles.suggestion}>{prediction.description}</Text>
+              </View>
+            </TouchableHighlight>
+          ))}
+
+        {props.pointCoords.length > 1 && (
+          <BottomButton func={handleRequestDriver} text="REQUEST 🚗">
+            {isFindingDriver && (
+              <ActivityIndicator
+                animating={isFindingDriver}
+                color={colors.primary}
+                size="large"
+              />
+            )}
+          </BottomButton>
+        )}
+      </View>
+    )
   )
 }
 

@@ -1,5 +1,7 @@
 import React, {useState} from 'react'
-import {View, StyleSheet, TouchableOpacity, Text, Button} from 'react-native'
+import {View, StyleSheet, TouchableOpacity, Text} from 'react-native'
+
+import GenericContainer from './components/GenericContainer'
 import colors from './config/colors'
 import Driver from './screens/Driver'
 import Passenger from './screens/Passenger'
@@ -9,11 +11,11 @@ const App = () => {
   const [isPassenger, setIsPassenger] = useState(false)
 
   if (isDriver) {
-    return <Driver />
+    return <GenericContainer children={<Driver />} />
   }
 
   if (isPassenger) {
-    return <Passenger />
+    return <GenericContainer children={<Passenger />} />
   }
 
   return (
