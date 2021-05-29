@@ -1,5 +1,9 @@
+import json
+
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from .serializers import UserSerializer
@@ -11,6 +15,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     # Set partial updated equals to true to ignore
     # required updates on fields that are not in the PUT request
