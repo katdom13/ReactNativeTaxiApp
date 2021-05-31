@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-7m!z4yx%u)bsp0x(his0cazr8x_#x1m54c_739yhn)!!4u@6un
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.0.106']
 
 
 # Application definition
@@ -154,9 +154,35 @@ AUTHENTICATION_BACKENDS = [
 
 # CORS
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+#     "http://192.168.0.106:3000",
+#     "http://localhost:8081",
+#     "http://127.0.0.1:8081",
+#     "http://192.168.0.106:8081",
+#     "http://localhost:19000",
+#     "http://127.0.0.1:19000",
+#     "http://192.168.0.106:19000",
+#     "http://localhost:19002",
+#     "http://127.0.0.1:19002",
+#     "http://192.168.0.106:19002",
+#     "http://localhost:19006",
+#     "http://127.0.0.1:19006",
+#     "http://192.168.0.106:19006",
+# ]
+CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
 # JWT
