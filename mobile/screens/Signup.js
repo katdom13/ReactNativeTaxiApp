@@ -7,20 +7,24 @@ import {
   Platform,
   Alert,
   Keyboard,
+  ScrollView,
 } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 
-import LoginForm from '../components/LoginForm'
 import axiosInstance from '../config/axios'
+import SignupForm from '../components/SignupForm'
 
-const Login = ({navigation}) => {
+const Signup = ({navigation}) => {
   const initialFormData = Object.freeze({
+    firstName: '',
+    lastName: '',
     username: '',
+    email: '',
     password: '',
   })
 
   const [formData, setFormData] = useState(initialFormData)
   const [errorMessage, setErrorMessage] = useState('')
+  const [errorFormData, setErrorFormData] = useState(null)
 
   const handleChange = (inputName, inputValue) => {
     setFormData({
@@ -29,30 +33,34 @@ const Login = ({navigation}) => {
     })
   }
 
-  const handleLogin = async () => {
+  const handleSignup = async () => {
     try {
       // Delete prior errors
       setErrorMessage('')
 
-      const {username, password} = formData
+      const {firstName, lastName, username, email, password} = formData
       await axiosInstance
-        .post('token/', {username, password})
+        .post('users/', {
+          first_name: firstName,
+          last_name: lastName,
+          username: username,
+          email: email,
+          password: password,
+        })
         .then(async response => {
-          await AsyncStorage.setItem('access_token', response.data.access)
-          await AsyncStorage.setItem('refresh_token', response.data.refresh)
-          const accessToken = await AsyncStorage.getItem('access_token')
-          axiosInstance.defaults.headers.Authorization = 'Bearer ' + accessToken
-          Alert.alert('Access Token', accessToken, [
+          Alert.alert('Account created', 'Please log in', [
             {
               text: 'OK',
               onPress: () => {
-                navigation.navigate('Selection')
+                navigation.navigate('Login')
               },
             },
           ])
         })
         .catch(err => {
-          setErrorMessage(err.response.data.detail)
+          console.log('AAAAAAAAAAAAAAAAAAAA', err.response.data)
+          // setErrorMessage(err.response.data.detail)
+          setErrorFormData(err.response.data)
         })
       Keyboard.dismiss()
     } catch (err) {
@@ -61,18 +69,21 @@ const Login = ({navigation}) => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.headerText}>React Native Taxi</Text>
-      <LoginForm
+      <SignupForm
+        firstName={formData.firstName}
+        lastName={formData.lastName}
         username={formData.username}
+        email={formData.email}
         password={formData.password}
         handleChange={handleChange}
-        handleLogin={handleLogin}
+        handleSignup={handleSignup}
         navigation={navigation}
+        errorFormData={errorFormData}
       />
       <Text style={styles.errorMessage}>{errorMessage}</Text>
-      <Image source={require('../images/greencar.png')} style={styles.logo} />
-    </View>
+    </ScrollView>
   )
 }
 
@@ -82,7 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3A3743',
   },
   errorMessage: {
-    padding: 15,
+    paddingHorizontal: 10,
     fontSize: 18,
     color: '#F5D7CC',
     fontWeight: 'bold',
@@ -103,4 +114,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default Login
+export default Signup

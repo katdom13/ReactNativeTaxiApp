@@ -7,13 +7,16 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native'
+import {Input} from 'react-native-elements'
+
 import colors from '../config/colors'
 
 const LoginForm = props => {
   return (
     <View>
-      <TextInput
+      <Input
         style={styles.input}
+        inputContainerStyle={styles.inputContainer}
         placeholder="Username or Email"
         placeholderTextColor={colors.white}
         autoCapitalize="none"
@@ -22,8 +25,9 @@ const LoginForm = props => {
         value={props.username}
         onChangeText={username => props.handleChange('username', username)}
       />
-      <TextInput
+      <Input
         style={styles.input}
+        inputContainerStyle={styles.inputContainer}
         placeholder="Password"
         placeholderTextColor={colors.white}
         autoCapitalize="none"
@@ -36,9 +40,12 @@ const LoginForm = props => {
       <TouchableOpacity style={styles.button} onPress={props.handleLogin}>
         <Text style={styles.buttonText}>Log in</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Sign up</Text>
-      </TouchableOpacity>
+      <Text
+        style={styles.link}
+        onPress={() => props.navigation.navigate('Signup')}
+      >
+        Do not have an account yet? Sign up
+      </Text>
     </View>
   )
 }
@@ -60,9 +67,17 @@ const styles = StyleSheet.create({
   input: {
     height: 40,
     backgroundColor: '#8793A6',
-    padding: 10,
+    padding: 5,
     color: colors.white,
-    marginBottom: 10,
+  },
+  inputContainer: {
+    borderBottomWidth: 0,
+    marginBottom: 5,
+  },
+  link: {
+    color: '#ABC837',
+    fontSize: 18,
+    textAlign: 'center',
   },
 })
 

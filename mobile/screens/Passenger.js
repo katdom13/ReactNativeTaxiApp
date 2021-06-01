@@ -17,7 +17,7 @@ import {googleAPIKey} from '../config/googleAPIKey'
 import colors from '../config/colors'
 import BottomButton from '../components/BottomButton'
 
-const Passenger = props => {
+const Passenger = (props, {navigation}) => {
   const [destination, setDestination] = useState('')
   const [predictions, setPredictions] = useState([])
   const [routeResponse, setRouteResponse] = useState(null)
