@@ -1,4 +1,4 @@
-import React, {useState} from 'react'
+import React, {useContext, useState} from 'react'
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import LoginForm from '../components/LoginForm'
 import axiosInstance from '../config/axios'
+import AppContext from '../contexts/AppContext'
 
 const Login = ({navigation}) => {
   const initialFormData = Object.freeze({
@@ -21,6 +22,8 @@ const Login = ({navigation}) => {
 
   const [formData, setFormData] = useState(initialFormData)
   const [errorMessage, setErrorMessage] = useState('')
+
+  const {login} = useContext(AppContext)
 
   const handleChange = (inputName, inputValue) => {
     setFormData({
@@ -46,7 +49,8 @@ const Login = ({navigation}) => {
             {
               text: 'OK',
               onPress: () => {
-                navigation.navigate('Selection')
+                // navigation.navigate('Selection')
+                login()
               },
             },
           ])
