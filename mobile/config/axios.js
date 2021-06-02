@@ -22,73 +22,79 @@ const axiosInstance = axios.create({
   },
 })
 
-// axiosInstance.interceptors.response.use(
-//   response => {
-//     return response
-//   },
-//   async function (error) {
-//     const originalRequest = error.config
+axiosInstance.interceptors.response.use(
+  response => {
+    return response
+  },
+  async error => {
+    const originalRequest = error.config
 
-//     if (typeof error.response === 'undefined') {
-//       Alert.alert(
-//         'A server/network error occurred. ' +
-//           'Looks like CORS might be the problem. ' +
-//           'Sorry about this - we will get it fixed shortly.',
-//       )
-//       return Promise.reject(error)
-//     }
+    if (typeof error.response === 'undefined') {
+      Alert.alert(
+        'A server/network error occured. ' +
+          'Looks like CORS might be the problem. ' +
+          'Sorry about this - we will get it fixed shortly.',
+      )
+      return Promise.reject(error)
+    }
 
-//     if (
-//       error.response.status === 401 &&
-//       originalRequest.url === baseUrl + 'token/refresh/'
-//     ) {
-//       return Promise.reject(error)
-//     }
+    if (
+      error.response.status === 401 &&
+      originalRequest.url === baseUrl + 'token/refresh'
+    ) {
+      return AsyncStorage.setItem('access_token', '').then(data => {
+        return Promise.reject(error)
+      })
+    }
 
-//     if (
-//       error.response.data.code === 'token_not_valid' &&
-//       error.response.status === 401 &&
-//       error.response.statusText === 'Unauthorized'
-//     ) {
-//       const refreshToken = await AsyncStorage.getItem('refresh_token')
+    if (
+      error.response.data.code === 'token_not_valid' &&
+      error.response.status === 401 &&
+      error.response.statusText === 'Unauthorized'
+    ) {
+      const refreshToken = await AsyncStorage.getItem('refresh_token')
 
-//       if (refreshToken) {
-//         const tokenParts = JSON.parse(atob(refreshToken.split('.')[1]))
+      if (refreshToken) {
+        const tokenParts = JSON.parse(atob(refreshToken.split('.')[1]))
 
-//         // exp date in token is expressed in seconds, while now() returns milliseconds:
-//         const now = Math.ceil(Date.now() / 1000)
-//         console.log(tokenParts.exp)
+        // exp date in token is expressed in seconds, while now() returns milliseconds:
+        const now = Math.ceil(Date.now() / 1000)
+        console.log(tokenParts.exp)
 
-//         if (tokenParts.exp > now) {
-//           return axiosInstance
-//             .post('/token/refresh/', {refresh: refreshToken})
-//             .then(response => {
-//               localStorage.setItem('access_token', response.data.access)
-//               localStorage.setItem('refresh_token', response.data.refresh)
+        if (tokenParts.exp > now) {
+          return axiosInstance
+            .post('/token/refresh/', {refresh: refreshToken})
+            .then(async response => {
+              await AsyncStorage.setItem('access_token', response.data.access)
+              await AsyncStorage.setItem('refresh_token', response.data.refresh)
 
-//               axiosInstance.defaults.headers.Authorization =
-//                 'JWT ' + response.data.access
-//               originalRequest.headers.Authorization =
-//                 'JWT ' + response.data.access
+              axiosInstance.defaults.headers.Authorization =
+                'JWT ' + response.data.access
+              originalRequest.headers.Authorization =
+                'JWT ' + response.data.access
 
-//               return axiosInstance(originalRequest)
-//             })
-//             .catch(err => {
-//               console.log(err)
-//             })
-//         } else {
-//           console.log('Refresh token is expired', tokenParts.exp, now)
-//           window.location.href = '/login/'
-//         }
-//       } else {
-//         console.log('Refresh token not available.')
-//         window.location.href = '/login/'
-//       }
-//     }
-
-//     // specific error handling done elsewhere
-//     return Promise.reject(error)
-//   },
-// )
+              return axiosInstance(originalRequest)
+            })
+            .catch(err => {
+              console.log(err)
+            })
+        } else {
+          console.log('Refresh token is expired', tokenParts.exp, now)
+          return AsyncStorage.setItem('access_token', '').then(data => {
+            return Promise.reject(error)
+          })
+        }
+      } else {
+        console.log('Refresh token not available.')
+        return AsyncStorage.setItem('access_token', '').then(data => {
+          return Promise.reject(error)
+        })
+      }
+    }
+    return AsyncStorage.setItem('access_token', '').then(data => {
+      return Promise.reject(error)
+    })
+  },
+)
 
 export default axiosInstance
