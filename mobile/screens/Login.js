@@ -24,8 +24,9 @@ const Login = ({navigation}) => {
   const [formData, setFormData] = useState(initialFormData)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const {authContext} = useContext(AppContext)
-  const {login} = authContext
+  const {
+    authContext: {login},
+  } = useContext(AppContext)
   const axiosInstance = useContext(AxiosContext)
 
   const handleChange = (inputName, inputValue) => {
