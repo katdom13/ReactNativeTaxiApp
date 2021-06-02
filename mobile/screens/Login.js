@@ -41,16 +41,23 @@ const Login = ({navigation}) => {
       await axiosInstance
         .post('token/', {username, password})
         .then(async response => {
+          // Set token from API
           await AsyncStorage.setItem('access_token', response.data.access)
           await AsyncStorage.setItem('refresh_token', response.data.refresh)
+
+          // Get token form local storage
           const accessToken = await AsyncStorage.getItem('access_token')
+          const refreshToken = await AsyncStorage.getItem('refresh_token')
+
+          // Set headers using token
           axiosInstance.defaults.headers.Authorization = 'Bearer ' + accessToken
+
           Alert.alert('Access Token', accessToken, [
             {
               text: 'OK',
               onPress: () => {
-                // navigation.navigate('Selection')
-                login()
+                // Dispatch action: set state in reducer context
+                login({access_token: accessToken, refreshToken: refreshToken})
               },
             },
           ])
