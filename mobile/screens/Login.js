@@ -11,8 +11,9 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import LoginForm from '../components/LoginForm'
-import axiosInstance from '../config/axios'
+// import axiosInstance from '../config/axios'
 import AppContext from '../contexts/AppContext'
+import {AxiosContext} from '../contexts/AxiosContext'
 
 const Login = ({navigation}) => {
   const initialFormData = Object.freeze({
@@ -23,7 +24,9 @@ const Login = ({navigation}) => {
   const [formData, setFormData] = useState(initialFormData)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const {login} = useContext(AppContext)
+  const {authContext} = useContext(AppContext)
+  const {login} = authContext
+  const axiosInstance = useContext(AxiosContext)
 
   const handleChange = (inputName, inputValue) => {
     setFormData({
@@ -67,7 +70,7 @@ const Login = ({navigation}) => {
         })
       Keyboard.dismiss()
     } catch (err) {
-      console.error(err)
+      console.error('[]', err)
     }
   }
 

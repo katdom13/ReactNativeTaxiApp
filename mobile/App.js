@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import AppContext from './contexts/AppContext'
 import {View, ActivityIndicator} from 'react-native'
 import colors from './config/colors'
+import {AxiosProvider} from './contexts/AxiosContext'
 
 const Stack = createStackNavigator()
 
@@ -32,6 +33,11 @@ const App = () => {
             ...prevState,
             access_token: action.access_token,
             refresh_token: action.refresh_token,
+          }
+        case 'RESET':
+          return {
+            ...prevState,
+            access_token: '',
           }
       }
     },
@@ -77,6 +83,11 @@ const App = () => {
         refresh_token: data.refresh_token,
       })
     },
+    reset: async () => {
+      dispatch({
+        type: 'RESET',
+      })
+    },
   }))
 
   return state.isLoading ? (
@@ -94,41 +105,43 @@ const App = () => {
       />
     </View>
   ) : (
-    <AppContext.Provider value={authContext}>
-      <NavigationContainer>
-        {state.access_token ? (
-          <Stack.Navigator>
-            <Stack.Screen
-              name="Selection"
-              component={Selection}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Driver"
-              children={() => <GenericContainer children={<Driver />} />}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Passenger"
-              children={() => <GenericContainer children={<Passenger />} />}
-              options={{headerShown: false}}
-            />
-          </Stack.Navigator>
-        ) : (
-          <Stack.Navigator>
-            <Stack.Screen
-              name="Login"
-              component={Login}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="Signup"
-              component={Signup}
-              options={{headerShown: false}}
-            />
-          </Stack.Navigator>
-        )}
-      </NavigationContainer>
+    <AppContext.Provider value={{authContext, state}}>
+      <AxiosProvider>
+        <NavigationContainer>
+          {state.access_token ? (
+            <Stack.Navigator>
+              <Stack.Screen
+                name="Selection"
+                component={Selection}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="Driver"
+                children={() => <GenericContainer children={<Driver />} />}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="Passenger"
+                children={() => <GenericContainer children={<Passenger />} />}
+                options={{headerShown: false}}
+              />
+            </Stack.Navigator>
+          ) : (
+            <Stack.Navigator>
+              <Stack.Screen
+                name="Login"
+                component={Login}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="Signup"
+                component={Signup}
+                options={{headerShown: false}}
+              />
+            </Stack.Navigator>
+          )}
+        </NavigationContainer>
+      </AxiosProvider>
     </AppContext.Provider>
   )
 }

@@ -1,17 +1,16 @@
 import React, {useState} from 'react'
 import {
-  View,
   StyleSheet,
   Text,
-  Image,
   Platform,
   Alert,
   Keyboard,
   ScrollView,
 } from 'react-native'
 
-import axiosInstance from '../config/axios'
+// import axiosInstance from '../config/axios'
 import SignupForm from '../components/SignupForm'
+import {AxiosContext} from '../contexts/AxiosContext'
 
 const Signup = ({navigation}) => {
   const initialFormData = Object.freeze({
@@ -25,6 +24,7 @@ const Signup = ({navigation}) => {
   const [formData, setFormData] = useState(initialFormData)
   const [errorMessage, setErrorMessage] = useState('')
   const [errorFormData, setErrorFormData] = useState(null)
+  const axiosInstance = useState(AxiosContext)
 
   const handleChange = (inputName, inputValue) => {
     setFormData({
